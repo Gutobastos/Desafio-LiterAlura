@@ -1,0 +1,6 @@
+insert into livros(id, autores, download, idioma, titulo) values (1, 'Machado de Assis', '586', 'pt', 'Quincas Borba');
+insert into livros(id, autores, download, idioma, titulo) values (2, 'Camões, Luís de', '2401', 'pt', 'Os Lusíadas');
+insert into livros(id, autores, download, idioma, titulo) values (3, 'Castro, João Bautista de', '435', 'pt', 'Mappa de Portugal antigo, e moderno, tomo 1 (of 3): Parte I, II');
+insert into livros(id, autores, download, idioma, titulo) values (4, 'Huizinga, Johan', '624', 'nl', 'Herfsttij der Middeleeuwen: Studie over levens- en gedachtervormen der veertiende en vijftiende eeuw in Frankrijk en de Nederlanden');
+insert into livros(id, autores, download, idioma, titulo) values (5, 'Kennedy, John F. (John Fitzgerald)', '1575', 'en', 'John F. Kennedy´s Inaugural Address');
+insert into livros(id, autores, download, idioma, titulo) values (6, 'Stevenson, Robert Louis', '35263', 'en', 'The Strange Case of Dr. Jekyll and Mr. Hyde');
