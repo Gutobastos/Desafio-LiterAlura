@@ -1,23 +1,33 @@
 package br.com.alura.literalura.principal;
 
-import br.com.alura.literalura.model.DadosLivro;
+import br.com.alura.literalura.model.DadosResults;
 import br.com.alura.literalura.model.Livro;
+import br.com.alura.literalura.model.DadosLivro;
+import br.com.alura.literalura.model.Resultado;
+import br.com.alura.literalura.repository.LivroRepository;
 import br.com.alura.literalura.service.ConsumoAPI;
 import br.com.alura.literalura.service.ConverteDados;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class Principal {
     private Scanner leitura = new Scanner(System.in);
     private ConsumoAPI consumo = new ConsumoAPI();
     private final String enderecoAPI = "https://gutendex.com/books";
     private ConverteDados conversor = new ConverteDados();
+    LivroRepository repositorio;
 
     private List<Livro> livros = new ArrayList<>();
     private List<DadosLivro> dadosLivros = new ArrayList<>();
+    private List<DadosResults> dadosResultsList = new ArrayList<>();
     private int opcao = 9;
+
+    public Principal(LivroRepository repositorio) {
+        this.repositorio = repositorio;
+    }
 
     public void exibeMenu() {
         while (opcao != 0) {
@@ -47,51 +57,58 @@ public class Principal {
                     buscarLivroWeb();
                     break;
                 case 2:
-                    buscarTodosLivroWeb();
+                    buscarTodosLivrosWeb();
                     break;
                 case 3:
-                    buscarPelosAutores();
+//                    buscarPelosAutores();
                     break;
                 case 4:
-                    buscarPelosAutoresVivos();
+//                    buscarPelosAutoresVivos();
                     break;
                 case 5:
-                    buscarLivrosPeloIdioma();
+//                    buscarLivrosPeloIdioma();
                     break;
             }
         }
     }
 
-    private void buscarLivroWeb() {
-        DadosLivro dados = getDadosLivro();
-        dadosLivros.add(dados);
-        System.out.println(dadosLivros + "\n");
-    }
-
-    private DadosLivro getDadosLivro() {
-        System.out.println("Digite o nome do título do livro: ");
-        var nomeLivro = "casmurro";
-
-
-        var json = consumo.obterDadosAPI(enderecoAPI + "/?search=" + nomeLivro.replace(" ", "+") + "&?languages=pt");
-        System.out.println(json);
+    private DadosLivro getDadosLivroGeral() {
+        System.out.println("Buscando todos os livros disponíveis: ");
+        System.out.println("Buscando...");
+        var json = consumo.obterDadosAPI(enderecoAPI + "/");
+        System.out.println("\nDADOS DA API: " + json + "\n");
         DadosLivro dados = conversor.obterDados(json, DadosLivro.class);
         return dados;
     }
 
-    private void buscarTodosLivroWeb() {
-        System.out.println("\nBuscando todos os livros...");
-        var json = consumo.obterDadosAPI(enderecoAPI + "/");
-        System.out.println(json);
+    private DadosLivro getDadosLivro() {
+        System.out.println("Digite o nome da série para busca");
+        var tituloLivro = "casmurro";
+        var json = consumo.obterDadosAPI(enderecoAPI + "/?search=" + tituloLivro.replace(" ", "+"));
+        System.out.println("\nDADOS DA API: " + json + "\n");
+        DadosLivro dados = conversor.obterDados(json, DadosLivro.class);
+        return dados;
     }
 
-    private void buscarPelosAutores() {
+    private void buscarLivroWeb() {
+        dadosLivros.add(getDadosLivro());
+        List<DadosLivro> resultados = dadosLivros.stream()
+                .flatMap(d -> d.dadosDoLivro()
+                        .stream().map(r -> new DadosLivro(d.dadosDoLivro(), d.respostaAutores())))
+                .collect(Collectors.toList());
+        resultados.forEach(System.out::println);
+
     }
 
-    private void buscarPelosAutoresVivos() {
-    }
+    private void buscarTodosLivrosWeb() {
+        List<DadosLivro> dadosLivros = new ArrayList<>();
+//        dadosLivros.add(getDadosLivroGeral());
+        List<DadosLivro> resultados = dadosLivros.stream()
+                .flatMap(d -> d.dadosDoLivro()
+                        .stream().map(r -> new DadosLivro(d.dadosDoLivro(), d.respostaAutores())))
+                .collect(Collectors.toList());
+        resultados.forEach(System.out::println);
 
-    private void buscarLivrosPeloIdioma() {
     }
 
 }

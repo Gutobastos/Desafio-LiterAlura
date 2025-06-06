@@ -2,6 +2,8 @@ package br.com.alura.literalura.model;
 
 import jakarta.persistence.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "livros")
 public class Livro {
@@ -11,35 +13,55 @@ public class Livro {
     private Long id;
 
     @Column(unique = true)
+    private List<String> resultado;
+
     private String titulo;
 
-    private String autores;
+    private String nome;
+
+    private int anoNascimento;
+
+    private int anoFalecimento;
 
     private String idioma;
 
     private int download;
 
-    public Livro(DadosLivro dadosLivro) {
-        this.titulo = dadosLivro.titulo();
-        this.autores = dadosLivro.autores();
-        this.idioma = dadosLivro.idioma();
-        this.download = dadosLivro.download();
+    public Livro(){}
+
+    public Livro(DadosResults dadosResults){
+        this.titulo = dadosResults.titulo();
+        this.download = dadosResults.download();
     }
 
-    public String getTitulo() {
-        return titulo;
+    public Livro(DadosAutores dadosAutores){
+        this.nome = dadosAutores.nome();
+        this.anoNascimento = dadosAutores.anoNascimento();
+        this.anoFalecimento = dadosAutores.anoFalecimento();
     }
 
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
+    public Long getId() {
+        return id;
     }
 
-    public String getAutores() {
-        return autores;
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    public void setAutores(String autores) {
-        this.autores = autores;
+    public List<String> getResultado() {
+        return resultado;
+    }
+
+    public void setResultado(List<String> resultado) {
+        this.resultado = resultado;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
     }
 
     public String getIdioma() {
@@ -60,8 +82,8 @@ public class Livro {
 
     @Override
     public String toString() {
-        return "titulo= '" + titulo + '\'' +
-                ", autores= '" + autores + '\'' +
+        return "titulo= '" + resultado + '\'' +
+                ", autores= '" + nome + '\'' +
                 ", idioma= '" + idioma + '\'' +
                 ", download= " + download;
     }

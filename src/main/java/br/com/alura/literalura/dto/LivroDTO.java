@@ -1,4 +1,8 @@
 package br.com.alura.literalura.dto;
 
-public class LivroDTO {
+public record LivroDTO(Long id,
+                       String titulo,
+                       String autores,
+                       String idioma,
+                       int download) {
 }
