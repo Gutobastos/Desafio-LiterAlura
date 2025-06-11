@@ -8,5 +8,5 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Dados(@JsonAlias("results") List<DadosLivro> dadosLivros,
                     @JsonAlias("authors") List<DadosAutores> dadosAutores,
-                    List<String> languages
+                    @JsonAlias("languages") List<String> idioma
 ){}
