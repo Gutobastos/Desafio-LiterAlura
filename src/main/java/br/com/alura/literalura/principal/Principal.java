@@ -1,9 +1,7 @@
 package br.com.alura.literalura.principal;
 
-import br.com.alura.literalura.model.DadosResults;
-import br.com.alura.literalura.model.Livro;
-import br.com.alura.literalura.model.DadosLivro;
-import br.com.alura.literalura.model.Resultado;
+import br.com.alura.literalura.model.*;
+import br.com.alura.literalura.repository.AutoresRepository;
 import br.com.alura.literalura.repository.LivroRepository;
 import br.com.alura.literalura.service.ConsumoAPI;
 import br.com.alura.literalura.service.ConverteDados;
@@ -11,22 +9,27 @@ import br.com.alura.literalura.service.ConverteDados;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 public class Principal {
     private Scanner leitura = new Scanner(System.in);
     private ConsumoAPI consumo = new ConsumoAPI();
-    private final String enderecoAPI = "https://gutendex.com/books";
+    private final String enderecoAPI = "https://gutendex.com/books/";
     private ConverteDados conversor = new ConverteDados();
-    LivroRepository repositorio;
+    private LivroRepository repositorio;
+    private AutoresRepository repositorioAutores;
+    private Livro livro = new Livro();
+    private Autores autor = new Autores();
 
     private List<Livro> livros = new ArrayList<>();
-    private List<DadosLivro> dadosLivros = new ArrayList<>();
-    private List<DadosResults> dadosResultsList = new ArrayList<>();
+    private List<Autores> autores = new ArrayList<>();
+    private List<Dados> dados = new ArrayList<>();
+    private List<DadosLivro> dadosLivro = new ArrayList<>();
+    private List<DadosAutores> dadosAutores = new ArrayList<>();
     private int opcao = 9;
 
-    public Principal(LivroRepository repositorio) {
+    public Principal(LivroRepository repositorio, AutoresRepository repositorioAutores) {
         this.repositorio = repositorio;
+        this.repositorioAutores = repositorioAutores;
     }
 
     public void exibeMenu() {
@@ -72,43 +75,63 @@ public class Principal {
         }
     }
 
-    private DadosLivro getDadosLivroGeral() {
-        System.out.println("Buscando todos os livros disponíveis: ");
-        System.out.println("Buscando...");
-        var json = consumo.obterDadosAPI(enderecoAPI + "/");
-        System.out.println("\nDADOS DA API: " + json + "\n");
-        DadosLivro dados = conversor.obterDados(json, DadosLivro.class);
+    private Dados getDadosPorLivro() {
+        System.out.println("Informe o título do livro que deseja buscar: ");
+        var tituloDoLivro = leitura.nextLine();
+        System.out.println(tituloDoLivro.toUpperCase());
+        var json = consumo.obterDadosAPI(enderecoAPI + "?search=" + tituloDoLivro);
+        Dados dados = conversor.obterDados(json, Dados.class);
         return dados;
     }
 
-    private DadosLivro getDadosLivro() {
-        System.out.println("Digite o nome da série para busca");
-        var tituloLivro = "casmurro";
-        var json = consumo.obterDadosAPI(enderecoAPI + "/?search=" + tituloLivro.replace(" ", "+"));
-        System.out.println("\nDADOS DA API: " + json + "\n");
-        DadosLivro dados = conversor.obterDados(json, DadosLivro.class);
+    private Dados getDadosAutores() {
+        System.out.println("Buscando dados dos autores o livro: ");
+        Livro codigoDoLivro = new Livro(dadosLivro.get(0));
+        var json = consumo.obterDadosAPI(enderecoAPI + codigoDoLivro.getCodigo() + "/");
+        Dados dados = conversor.obterDados(json, Dados.class);
+        return dados;
+    }
+
+    private Dados getDadosLivro() {
+        System.out.println("Buscando pela lista de livros disponíveis...");
+        var json = consumo.obterDadosAPI(enderecoAPI);
+        Dados dados= conversor.obterDados(json, Dados.class);
         return dados;
     }
 
     private void buscarLivroWeb() {
-        dadosLivros.add(getDadosLivro());
-        List<DadosLivro> resultados = dadosLivros.stream()
-                .flatMap(d -> d.dadosDoLivro()
-                        .stream().map(r -> new DadosLivro(d.dadosDoLivro(), d.respostaAutores())))
-                .collect(Collectors.toList());
-        resultados.forEach(System.out::println);
+        dadosLivro = getDadosPorLivro().dadosLivros();
 
+        autores = dadosLivro.stream()
+                .flatMap(d -> d..stream()
+                .map(a -> new Autores(d.dadosAutores(), a)))
+                .collect(Collectors.toList());
+
+        livro.setAutores(autor);
+
+        System.out.println("\nLivro: " + dadosLivro);
+        System.out.println("Autores: " + dadosAutores);
+
+        salvaDados();
     }
 
     private void buscarTodosLivrosWeb() {
-        List<DadosLivro> dadosLivros = new ArrayList<>();
-//        dadosLivros.add(getDadosLivroGeral());
-        List<DadosLivro> resultados = dadosLivros.stream()
-                .flatMap(d -> d.dadosDoLivro()
-                        .stream().map(r -> new DadosLivro(d.dadosDoLivro(), d.respostaAutores())))
-                .collect(Collectors.toList());
-        resultados.forEach(System.out::println);
-
+        dadosLivro = getDadosLivro().dadosLivros();
+        dadosLivro.forEach(System.out::println);
     }
+
+    private void salvaDados() {
+        System.out.println("\nDeseja salvar esse livro na lista? (S/N)");
+        var salvar = leitura.nextLine();
+
+        if (salvar.equalsIgnoreCase("s")) {
+            livro = new Livro(dadosLivro.get(0));
+            repositorio.save(livro);
+            System.out.println("\nLivro salvo na lista com sucesso !!!");
+        } else {
+            System.out.println("O livro não foi salvo na lista !");
+        }
+    }
+
 
 }

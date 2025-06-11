@@ -2,6 +2,7 @@ package br.com.alura.literalura.model;
 
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -13,31 +14,30 @@ public class Livro {
     private Long id;
 
     @Column(unique = true)
-    private List<String> resultado;
+    private int codigo;
 
     private String titulo;
 
-    private String nome;
-
-    private int anoNascimento;
-
-    private int anoFalecimento;
-
-    private String idioma;
-
     private int download;
+
+    @OneToMany(mappedBy = "livro", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Autores> autores = new ArrayList<>();
 
     public Livro(){}
 
-    public Livro(DadosResults dadosResults){
-        this.titulo = dadosResults.titulo();
-        this.download = dadosResults.download();
+    public Livro(DadosLivro dadosLivro){
+        this.codigo = dadosLivro.codigo();
+        this.download = dadosLivro.download();
+        this.titulo = dadosLivro.titulo();
     }
 
-    public Livro(DadosAutores dadosAutores){
-        this.nome = dadosAutores.nome();
-        this.anoNascimento = dadosAutores.anoNascimento();
-        this.anoFalecimento = dadosAutores.anoFalecimento();
+    public List<Autores> getAutores() {
+        return autores;
+    }
+
+    public void setAutores(List<Autores> autores) {
+        autores.forEach(a -> a.setLivro(this));
+        this.autores = autores;
     }
 
     public Long getId() {
@@ -48,28 +48,20 @@ public class Livro {
         this.id = id;
     }
 
-    public List<String> getResultado() {
-        return resultado;
+    public int getCodigo() {
+        return codigo;
     }
 
-    public void setResultado(List<String> resultado) {
-        this.resultado = resultado;
+    public void setCodigo(int codigo) {
+        this.codigo = codigo;
     }
 
-    public String getNome() {
-        return nome;
+    public String getTitulo() {
+        return titulo;
     }
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getIdioma() {
-        return idioma;
-    }
-
-    public void setIdioma(String idioma) {
-        this.idioma = idioma;
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
     }
 
     public int getDownload() {
@@ -82,9 +74,8 @@ public class Livro {
 
     @Override
     public String toString() {
-        return "titulo= '" + resultado + '\'' +
-                ", autores= '" + nome + '\'' +
-                ", idioma= '" + idioma + '\'' +
+        return "código= " + codigo +
+                ", titulo=' " + titulo + '\'' +
                 ", download= " + download;
     }
 }
