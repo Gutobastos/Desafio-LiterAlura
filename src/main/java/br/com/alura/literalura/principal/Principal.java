@@ -2,13 +2,13 @@ package br.com.alura.literalura.principal;
 
 import br.com.alura.literalura.model.*;
 import br.com.alura.literalura.repository.AutoresRepository;
+import br.com.alura.literalura.repository.IdiomasRepository;
 import br.com.alura.literalura.repository.LivroRepository;
 import br.com.alura.literalura.service.ConsumoAPI;
 import br.com.alura.literalura.service.ConverteDados;
+import org.antlr.v4.runtime.atn.LookaheadEventInfo;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Principal {
     private Scanner leitura = new Scanner(System.in);
@@ -17,19 +17,23 @@ public class Principal {
     private ConverteDados conversor = new ConverteDados();
     private LivroRepository repositorio;
     private AutoresRepository repositorioAutores;
+    private IdiomasRepository repositorioIdiomas;
     private Livro livro = new Livro();
     private Autores autor = new Autores();
+    private Idioma idioma = new Idioma();
 
     private List<Livro> livros = new ArrayList<>();
     private List<Autores> autores = new ArrayList<>();
     private List<Dados> dados = new ArrayList<>();
     private List<DadosLivro> dadosLivro = new ArrayList<>();
     private List<DadosAutores> dadosAutores = new ArrayList<>();
+    private List<String> dadosIdiomas = new ArrayList<>();
     private int opcao = 9;
 
-    public Principal(LivroRepository repositorio, AutoresRepository repositorioAutores) {
+    public Principal(LivroRepository repositorio, AutoresRepository repositorioAutores, IdiomasRepository repositoriIdiomas) {
         this.repositorio = repositorio;
         this.repositorioAutores = repositorioAutores;
+        this.repositorioIdiomas = repositoriIdiomas;
     }
 
     public void exibeMenu() {
@@ -51,73 +55,54 @@ public class Principal {
             System.out.println("Digite uma das opções: ");
             opcao = leitura.nextInt();
             leitura.nextLine();
-
-            switch (opcao) {
-                case 0:
-                    System.out.println("Saindo...");
-                    break;
-                case 1:
-                    buscarLivroWeb();
-                    break;
-                case 2:
-                    buscarTodosLivrosWeb();
-                    break;
-                case 3:
-//                    buscarPelosAutores();
-                    break;
-                case 4:
+            if (opcao <= 5){
+                switch (opcao) {
+                    case 0:
+                        System.out.println("Saindo...");
+                        break;
+                    case 1:
+                        buscarLivroWeb();
+                        break;
+                    case 2:
+                        buscarTodosLivrosWeb();
+                        break;
+                    case 3:
+                        buscarPelosAutores();
+                        break;
+                    case 4:
 //                    buscarPelosAutoresVivos();
-                    break;
-                case 5:
+                        break;
+                    case 5:
 //                    buscarLivrosPeloIdioma();
-                    break;
+                        break;
+                }
+            } else {
+                System.out.println("Favor informar uma das opções númericas !");
             }
         }
     }
 
+
     private Dados getDadosPorLivro() {
         System.out.println("Informe o título do livro que deseja buscar: ");
         var tituloDoLivro = leitura.nextLine();
-        System.out.println(tituloDoLivro.toUpperCase());
-        var json = consumo.obterDadosAPI(enderecoAPI + "?search=" + tituloDoLivro);
+        var json = consumo.obterDadosAPI(enderecoAPI + "?search=" + tituloDoLivro.toLowerCase().replace(" ", "+"));
         Dados dados = conversor.obterDados(json, Dados.class);
         return dados;
     }
 
-    private Dados getDadosAutores() {
-        System.out.println("Buscando dados dos autores o livro: ");
+    private Dados getDadosDoLivro() {
         Livro codigoDoLivro = new Livro(dadosLivro.get(0));
         var json = consumo.obterDadosAPI(enderecoAPI + codigoDoLivro.getCodigo() + "/");
         Dados dados = conversor.obterDados(json, Dados.class);
         return dados;
     }
 
-    private Dados getDadosLivro() {
+    private Dados getDadosLivros() {
         System.out.println("Buscando pela lista de livros disponíveis...");
         var json = consumo.obterDadosAPI(enderecoAPI);
         Dados dados= conversor.obterDados(json, Dados.class);
         return dados;
-    }
-
-    private void buscarLivroWeb() {
-        dadosLivro = getDadosPorLivro().dadosLivros();
-
-        autores = dadosLivro.stream()
-                .flatMap(d -> d..stream()
-                .map(a -> new Autores(d.dadosAutores(), a)))
-                .collect(Collectors.toList());
-
-        livro.setAutores(autor);
-
-        System.out.println("\nLivro: " + dadosLivro);
-        System.out.println("Autores: " + dadosAutores);
-
-        salvaDados();
-    }
-
-    private void buscarTodosLivrosWeb() {
-        dadosLivro = getDadosLivro().dadosLivros();
-        dadosLivro.forEach(System.out::println);
     }
 
     private void salvaDados() {
@@ -126,11 +111,77 @@ public class Principal {
 
         if (salvar.equalsIgnoreCase("s")) {
             livro = new Livro(dadosLivro.get(0));
+            autor = new Autores(dadosAutores.get(0));
+            idioma = new Idioma(dadosIdiomas.get(0));
             repositorio.save(livro);
+            repositorioAutores.save(autor);
+            repositorioIdiomas.save(idioma);
             System.out.println("\nLivro salvo na lista com sucesso !!!");
         } else {
             System.out.println("O livro não foi salvo na lista !");
         }
+    }
+
+    private void buscarLivroWeb() {
+        dadosLivro = getDadosPorLivro().dadosLivros();
+        System.out.println("Buscando dados do livro... Aguarde... ");
+        dadosAutores = getDadosDoLivro().dadosAutores();
+        dadosIdiomas = getDadosDoLivro().languages();
+        var formatacao = """
+                        ######################################################################
+                                              RESULTADO DA BUSCA POR TÍTULO
+
+                        Código: %s
+                        Downloads: %s
+                        Título: %s
+                        Idioma: %s
+                        Autor(s): %s
+                        Ano de Nascimento: %d
+                        Ano de Falecimento: %d
+
+                        ######################################################################
+                        """.formatted(dadosLivro.get(0).codigo(), dadosLivro.get(0).download(),
+                dadosLivro.get(0).titulo(), dadosIdiomas.get(0), dadosAutores.get(0).nome(), dadosAutores.get(0).anoNascimento(),
+                dadosAutores.get(0).anoFalecimento());
+
+        Optional<Livro> livroInformado = repositorio.findByTituloContainingIgnoreCase(dadosLivro.get(0).titulo());
+        if (livroInformado.isPresent()) {
+            System.out.println(formatacao);
+        } else {
+            System.out.println(formatacao);
+            System.out.println("Novo livro encontrado na API, mas não está na base de dados !");
+            salvaDados();
+        }
+    }
+
+    private void listarLivrosBuscados() {
+        livros = repositorio.findAll();
+        livros.stream()
+                .sorted(Comparator.comparing(Livro::getTitulo))
+                .forEach(System.out::println);
+    }
+
+    private void buscarTodosLivrosWeb() {
+        dadosLivro = getDadosLivros().dadosLivros();
+        var indice = 1;
+        for (var i = 0 ; i <= dadosLivro.size(); i++) {
+            var formatacaoGeral = """
+                    ######################################################################
+                                  RESULTADO DA BUSCA DE LIVROS DISPONÍVEIS(%d)
+                    
+                    Código: %s
+                    Downloads: %s
+                    Título: %s
+                    
+                    ######################################################################
+                    """.formatted(indice++, dadosLivro.get(i).codigo(), dadosLivro.get(i).download(),
+                    dadosLivro.get(i).titulo());
+            System.out.println(formatacaoGeral);
+        }
+    }
+
+    private void buscarPelosAutores() {
+
     }
 
 
