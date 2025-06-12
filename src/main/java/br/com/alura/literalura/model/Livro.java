@@ -23,6 +23,9 @@ public class Livro {
     @OneToMany(mappedBy = "livro", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Autores> autores = new ArrayList<>();
 
+    @OneToMany(mappedBy = "livro", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Idioma> idiomas = new ArrayList<>();
+
     public Livro(){}
 
     public Livro(DadosLivro dadosLivro){
@@ -38,6 +41,15 @@ public class Livro {
     public void setAutores(List<Autores> autores) {
         autores.forEach(a -> a.setLivro(this));
         this.autores = autores;
+    }
+
+    public List<Idioma> getIdiomas() {
+        return idiomas;
+    }
+
+    public void setIdiomas(List<Idioma> idiomas) {
+        idiomas.forEach(i -> i.setLivro(this));
+        this.idiomas = idiomas;
     }
 
     public Long getId() {

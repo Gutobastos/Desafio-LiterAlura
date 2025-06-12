@@ -12,12 +12,15 @@ import java.util.stream.Collectors;
 
 public class Principal {
     private Scanner leitura = new Scanner(System.in);
+
     private ConsumoAPI consumo = new ConsumoAPI();
     private final String enderecoAPI = "https://gutendex.com/books/";
     private ConverteDados conversor = new ConverteDados();
+
     private LivroRepository repositorio;
     private AutoresRepository repositorioAutores;
     private IdiomasRepository repositorioIdiomas;
+
     private Livro livro = new Livro();
     private Autores autor = new Autores();
     private Idioma idioma = new Idioma();
@@ -29,6 +32,11 @@ public class Principal {
     private List<DadosLivro> dadosLivro = new ArrayList<>();
     private List<DadosAutores> dadosAutores = new ArrayList<>();
     private List<String> dadosIdiomas = new ArrayList<>();
+
+    private Optional<Autores> autoresBusca;
+    private Optional<Livro> livroBusca;
+    private Optional<Idioma> idiomaBusca;
+
     private int opcao = 9;
 
     public Principal(LivroRepository repositorio, AutoresRepository repositorioAutores, IdiomasRepository repositoriIdiomas) {
@@ -40,13 +48,13 @@ public class Principal {
     public void exibeMenu() {
         while (opcao != 0) {
             var menu = """
-                    ########### LITERALURA ##########
+                    \n########### LITERALURA ##########
                                                     #
                     1 - BUSCAR LIVRO POR TÍTULO     #
                     2 - BUSCAR TODOS OS LIVROS      #
-                    3 - BUSCA PELOS AUTORES         #
-                    4 - BUSCA PELOS AUTORES VIVOS   #
-                    5 - BUSCAR LIVROS PELO IDIOMA   #
+                    3 - BUSCAR PELOS AUTORES        #
+                    4 - BUSCAR PELOS AUTORES VIVOS  #
+                    5 - LISTAR LIVROS PELO IDIOMA   #
                                                     #
                     0 - SAIR                        #
                                                     #
@@ -74,7 +82,7 @@ public class Principal {
                         buscarPelosAutoresVivos();
                         break;
                     case 5:
-//                    buscarLivrosPeloIdioma();
+                        buscarLivrosPeloIdioma();
                         break;
                 }
             } else {
@@ -83,6 +91,12 @@ public class Principal {
         }
     }
 
+    private void listarLivrosBuscados() {
+        livros = repositorio.findAll();
+        livros.stream()
+                .sorted(Comparator.comparing(Livro::getTitulo))
+                .forEach(System.out::println);
+    }
 
     private Dados getDadosPorLivro() {
         System.out.println("Informe o título do livro que deseja buscar: ");
@@ -130,7 +144,7 @@ public class Principal {
         dadosIdiomas = getDadosDoLivro().idioma();
         var formatacao = """
                         ######################################################################
-                                              RESULTADO DA BUSCA POR TÍTULO
+                                         RESULTADO DA BUSCA POR TÍTULO NA API
 
                         Código: %s
                         Downloads: %s
@@ -155,20 +169,13 @@ public class Principal {
         }
     }
 
-    private void listarLivrosBuscados() {
-        livros = repositorio.findAll();
-        livros.stream()
-                .sorted(Comparator.comparing(Livro::getTitulo))
-                .forEach(System.out::println);
-    }
-
     private void buscarTodosLivrosWeb() {
         dadosLivro = getDadosLivros().dadosLivros();
         var indice = 1;
         for (var i = 0 ; i < dadosLivro.size(); i++) {
             var formatacaoGeral = """
                     ######################################################################
-                                  RESULTADO DA BUSCA DE LIVROS DISPONÍVEIS(%d)
+                            RESULTADO DA BUSCA DE LIVROS DISPONÍVEIS NA API ( %d )
                     
                     Código: %s
                     Downloads: %s
@@ -185,33 +192,37 @@ public class Principal {
         System.out.println("Informe o nome do autor para buscar na base de dados: ");
         var nomeAutor = leitura.nextLine();
         livros = repositorio.findAll();
-        autores = repositorioAutores.findAll();
         listaDeidiomas = repositorioIdiomas.findAll();
 
+        autoresBusca = repositorioAutores.findFirstByNomeContainingIgnoreCase(nomeAutor);
+        if (autoresBusca.isPresent()) {
 
-        List<Autores> relatorioAutores = autores.stream()
-                .filter(d -> d.getNome().equalsIgnoreCase(nomeAutor))
-                .collect(Collectors.toList());
+            List<Autores> relatorioAutores = autoresBusca.stream()
+                    .filter(d -> d.getNome().equals(autoresBusca.get().getNome()))
+                    .collect(Collectors.toList());
 
-        for (int i = 0; i < relatorioAutores.size(); i++) {
+            for (int i = 0; i < relatorioAutores.size(); i++) {
 
-            var relatorioDosAutores = """
-                    \n######################################################################
-                                    RESULTADO DA BUSCA DE LIVROS DISPONÍVEIS(%d)
-                    
-                    Nome: %s
-                    Nascido em: %d
-                    Faleceu em: %d
-                    Livro: %s
-                    Idioma: %s
-                    
-                    ######################################################################
-                    """.formatted(relatorioAutores.size(), relatorioAutores.get(i).getNome(),
-                    relatorioAutores.get(i).getAnoNascimento(),
-                    relatorioAutores.get(i).getAnoFalecimento(), livros.get(i).getTitulo(),
-                    listaDeidiomas.get(i).getIdioma());
+                var relatorioDosAutores = """
+                            \n######################################################################
+                                      RESULTADO DA BUSCA POR AUTORES NA BASE DE DADOS ( %d )
 
-            System.out.println(relatorioDosAutores);
+                            Nome: %s
+                            Nascido em: %d
+                            Faleceu em: %d
+                            Livro: %s
+                            Idioma: %s
+
+                            ######################################################################
+                            """.formatted(relatorioAutores.size(), relatorioAutores.get(i).getNome(),
+                        relatorioAutores.get(i).getAnoNascimento(),
+                        relatorioAutores.get(i).getAnoFalecimento(), livros.get(i).getTitulo(),
+                        listaDeidiomas.get(i).getIdioma());
+
+                System.out.println(relatorioDosAutores);
+            }
+        } else {
+            System.out.println("\nAutores não encontrados !");
         }
     }
 
@@ -224,9 +235,8 @@ public class Principal {
         autores = repositorioAutores.findAll();
         listaDeidiomas = repositorioIdiomas.findAll();
 
-
         List<Autores> relatorioAutoresVivos = autores.stream()
-                .filter(d -> d.getAnoFalecimento() >= anoVivo)
+                .filter(d -> d.getAnoNascimento() <= anoVivo && d.getAnoFalecimento() > anoVivo )
                 .sorted(Comparator.comparingInt(Autores::getAnoFalecimento))
                 .collect(Collectors.toList());
 
@@ -238,14 +248,14 @@ public class Principal {
 
             var relatorioDosAutores = """
                             \n######################################################################
-                                            RESULTADO DA BUSCA DE LIVROS DISPONÍVEIS(%d)
-                            
+                                          RESULTADO DA BUSCA DE AUTORES VIVOS ( %d )
+
                             Nome: %s
                             Nascido em: %d
                             Faleceu em: %d
                             Livro: %s
                             Idioma: %s
-                            
+
                             ######################################################################
                             """.formatted(relatorioAutoresVivos.size(), relatorioAutoresVivos.get(i).getNome(), relatorioAutoresVivos.get(i).getAnoNascimento(),
                     relatorioAutoresVivos.get(i).getAnoFalecimento(), livros.get(i).getTitulo(),
@@ -254,4 +264,37 @@ public class Principal {
             System.out.println(relatorioDosAutores);
         }
     }
+
+    private void buscarLivrosPeloIdioma() {
+        listaDeidiomas = repositorioIdiomas.findAll();
+        System.out.println("Estatisicas dos livros na base de dados: ");
+
+        livros = repositorio.findAll();
+        listaDeidiomas = repositorioIdiomas.findAll();
+
+        List<Livro> relatorioLivros = livros.stream()
+                .filter(d -> d.getTitulo() != null)
+                .collect(Collectors.toList());
+
+        List<Idioma> relatorioIdiomasPt = listaDeidiomas.stream()
+                .filter(d -> d.getIdioma().equals("pt"))
+                .collect(Collectors.toList());
+
+        List<Idioma> relatorioIdiomasEn = listaDeidiomas.stream()
+                .filter(d -> d.getIdioma().equals("en"))
+                .collect(Collectors.toList());
+
+        var estatisticaLivros = """
+                        \n######################################################################
+                                  ESTATISTICAS DE LIVROS NOS IDIOMAS NO BANCO DE DADOS
+
+                                      LIVROS       |    PORTUGUES   |     INGLES
+                        _______________________________________________________________________
+                                        %d                  %d               %d
+                        ########################################################################
+                        """.formatted(livros.size(), relatorioIdiomasPt.size(), relatorioIdiomasEn.size());
+
+        System.out.println(estatisticaLivros);
+    }
+
 }
