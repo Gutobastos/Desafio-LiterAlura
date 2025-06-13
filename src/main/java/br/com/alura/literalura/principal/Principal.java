@@ -7,12 +7,8 @@ import br.com.alura.literalura.repository.LivroRepository;
 import br.com.alura.literalura.service.ConsumoAPI;
 import br.com.alura.literalura.service.ConverteDados;
 
-import javax.swing.*;
-import java.text.ParseException;
-import java.time.LocalDate;
 import java.time.Year;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Principal {
     private Scanner leitura = new Scanner(System.in);
