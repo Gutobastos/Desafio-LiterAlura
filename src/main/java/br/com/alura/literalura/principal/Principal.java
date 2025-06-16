@@ -83,12 +83,12 @@ public class Principal {
         var nomeAutores = leitura.nextLine();
         List<Autores> livrosEncontrados = repositorio.buscarDadosLivrosDosAutores(nomeAutores);
         var fichaTecnica = new ArrayList<>();
-        for (int i = 0; i < livrosEncontrados.size(); i++){
-            fichaTecnica.add(livrosEncontrados.get(i).getNome());
-            fichaTecnica.add(livrosEncontrados.get(i).getAnoNascimento());
-            fichaTecnica.add(livrosEncontrados.get(i).getAnoFalecimento());
-            fichaTecnica.add(livrosEncontrados.get(i).getLivro().getTitulo());
-            fichaTecnica.add(livrosEncontrados.get(i).getLivro().getIdiomas().get(0).getIdioma());
+        for (Autores livrosEncontrado : livrosEncontrados) {
+            fichaTecnica.add(livrosEncontrado.getNome());
+            fichaTecnica.add(livrosEncontrado.getAnoNascimento());
+            fichaTecnica.add(livrosEncontrado.getAnoFalecimento());
+            fichaTecnica.add(livrosEncontrado.getLivro().getTitulo());
+            fichaTecnica.add(livrosEncontrado.getLivro().getIdiomas().get(0).getIdioma());
         }
         return fichaTecnica;
     }
@@ -160,6 +160,7 @@ public class Principal {
             Optional<Livro> livroInformado = repositorio.findByTituloContainingIgnoreCase(dadosLivro.get(0).titulo());
             if (livroInformado.isPresent()) {
                 System.out.println(formatacao);
+                System.out.println("O livro já está na base de dados !");
             } else {
                 System.out.println(formatacao);
                 System.out.println("Novo livro encontrado na API, mas não está na base de dados !");
@@ -174,7 +175,7 @@ public class Principal {
         dadosLivro = getDadosLivros().dadosLivros();
         var indice = 1;
         System.out.printf("Foram encontrado(s) %d Livros... Listando...", dadosLivro.size());
-        for (var i = 0 ; i < dadosLivro.size(); i++) {
+        for (DadosLivro value : dadosLivro) {
             var formatacaoGeral = """
                     \n######################################################################
                             RESULTADO DA BUSCA DE LIVROS DISPONÍVEIS NA API ( %d )
@@ -184,8 +185,8 @@ public class Principal {
                     Título: %s
                     
                     ######################################################################
-                    """.formatted(indice++, dadosLivro.get(i).codigo(), dadosLivro.get(i).download(),
-                    dadosLivro.get(i).titulo());
+                    """.formatted(indice++, value.codigo(), value.download(),
+                    value.titulo());
             System.out.println(formatacaoGeral);
         }
     }
@@ -243,7 +244,7 @@ public class Principal {
                     _____________________________________________________________________
                     """.formatted(relatorioAutoresVivos.size());
             System.out.println(design);
-            for (int i = 0; i < relatorioAutoresVivos.size(); i++) {
+            for (Autores relatorioAutoresVivo : relatorioAutoresVivos) {
                 relatorioDosAutores = """
                         Nome: %s
                         Nascido em: %d
@@ -251,9 +252,9 @@ public class Principal {
                         Livro: %s
                         Idioma: %s
                         _____________________________________________________________________
-                        """.formatted(relatorioAutoresVivos.get(i).getNome(), relatorioAutoresVivos.get(i).getAnoNascimento(),
-                        relatorioAutoresVivos.get(i).getAnoFalecimento(), relatorioAutoresVivos.get(i).getLivro().getTitulo(),
-                        relatorioAutoresVivos.get(i).getLivro().getIdiomas().get(0).getIdioma());
+                        """.formatted(relatorioAutoresVivo.getNome(), relatorioAutoresVivo.getAnoNascimento(),
+                        relatorioAutoresVivo.getAnoFalecimento(), relatorioAutoresVivo.getLivro().getTitulo(),
+                        relatorioAutoresVivo.getLivro().getIdiomas().get(0).getIdioma());
                 System.out.println(relatorioDosAutores);
             }
         }
