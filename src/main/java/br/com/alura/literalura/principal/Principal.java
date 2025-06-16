@@ -1,8 +1,6 @@
 package br.com.alura.literalura.principal;
 
 import br.com.alura.literalura.model.*;
-import br.com.alura.literalura.repository.AutoresRepository;
-import br.com.alura.literalura.repository.IdiomasRepository;
 import br.com.alura.literalura.repository.LivroRepository;
 import br.com.alura.literalura.service.ConsumoAPI;
 import br.com.alura.literalura.service.ConverteDados;
@@ -12,40 +10,21 @@ import java.util.*;
 
 public class Principal {
     private Scanner leitura = new Scanner(System.in);
-
     private ConsumoAPI consumo = new ConsumoAPI();
     private final String enderecoAPI = "https://gutendex.com/books/";
     private ConverteDados conversor = new ConverteDados();
-
     private LivroRepository repositorio;
-    private AutoresRepository repositorioAutores;
-    private IdiomasRepository repositorioIdiomas;
-
     private Livro livro = new Livro();
-    private Autores autor = new Autores();
-    private Idioma idioma = new Idioma();
-
-    private List<Livro> livros = new ArrayList<>();
     private List<Autores> autores = new ArrayList<>();
     private List<Idioma> listaDeidiomas = new ArrayList<>();
-    private List<Dados> dados = new ArrayList<>();
     private List<DadosLivro> dadosLivro = new ArrayList<>();
     private List<DadosAutores> dadosAutores = new ArrayList<>();
     private List<String> dadosIdiomas = new ArrayList<>();
-
-    private Optional<Autores> autoresBusca;
-    private Optional<Livro> livroBusca;
-    private Optional<Idioma> idiomaBusca;
-
     private int opcao = -1;
     private int anoAutoresVivos;
-    private boolean validacao = true;
 
-    public Principal(LivroRepository repositorio, AutoresRepository repositorioAutores,
-                     IdiomasRepository repositoriIdiomas) {
+    public Principal(LivroRepository repositorio) {
         this.repositorio = repositorio;
-        this.repositorioAutores = repositorioAutores;
-        this.repositorioIdiomas = repositoriIdiomas;
     }
 
     public void exibeMenu() {
@@ -64,14 +43,13 @@ public class Principal {
                     #################################
                     """;
             System.out.println(menu);
+            opcao = -1;
             System.out.println("Digite uma das opções numéricas: ");
-
             try {
                 opcao = leitura.nextInt();
             } catch (InputMismatchException ex) {
                 System.out.println("\nOpção inválida, digite uma opção numérica do MENU !");
             }
-
             leitura.nextLine();
             if (opcao <= 5) {
                 switch (opcao) {
@@ -100,18 +78,26 @@ public class Principal {
         }
     }
 
-    private void listarLivrosBuscados() {
-        livros = repositorio.findAll();
-        livros.stream()
-                .sorted(Comparator.comparing(Livro::getTitulo))
-                .forEach(System.out::println);
+    private List getFichaTecnicaLivro() {
+        System.out.println("\nInforme o nome dos Autores para a busca ? ");
+        var nomeAutores = leitura.nextLine();
+        List<Autores> livrosEncontrados = repositorio.buscarDadosLivrosDosAutores(nomeAutores);
+        var fichaTecnica = new ArrayList<>();
+        for (int i = 0; i < livrosEncontrados.size(); i++){
+            fichaTecnica.add(livrosEncontrados.get(i).getNome());
+            fichaTecnica.add(livrosEncontrados.get(i).getAnoNascimento());
+            fichaTecnica.add(livrosEncontrados.get(i).getAnoFalecimento());
+            fichaTecnica.add(livrosEncontrados.get(i).getLivro().getTitulo());
+            fichaTecnica.add(livrosEncontrados.get(i).getLivro().getIdiomas().get(0).getIdioma());
+        }
+        return fichaTecnica;
     }
 
     private Dados getDadosPorLivro() {
         System.out.println("Informe o título do livro que deseja buscar: ");
         var tituloDoLivro = leitura.nextLine();
         var json = consumo.obterDadosAPI(enderecoAPI + "?search=" +
-                tituloDoLivro.toLowerCase().replace(" ", "+"));
+                tituloDoLivro.toLowerCase().replace(" ", "%20"));
         return conversor.obterDados(json, Dados.class);
     }
 
@@ -122,23 +108,27 @@ public class Principal {
     }
 
     private Dados getDadosLivros() {
-        System.out.println("Buscando pela lista de livros disponíveis...");
+        System.out.println("Buscando pela lista de livros disponíveis na API...");
         var json = consumo.obterDadosAPI(enderecoAPI);
         return conversor.obterDados(json, Dados.class);
     }
 
     private void salvaDados() {
         System.out.println("\nDeseja salvar esse livro na lista? (S/N)");
-
         var salvar = leitura.nextLine();
-
         if (salvar.equalsIgnoreCase("s")) {
             livro = new Livro(dadosLivro.get(0));
-            autor = new Autores(dadosAutores.get(0));
-            idioma = new Idioma(dadosIdiomas.get(0));
+            autores = dadosAutores.stream()
+                    .flatMap(da -> dadosAutores.stream()
+                            .map(Autores::new))
+                    .toList();
+            listaDeidiomas = dadosIdiomas.stream()
+                    .flatMap(di -> dadosIdiomas.stream()
+                            .map(Idioma::new))
+                    .toList();
+            livro.setAutores(autores);
+            livro.setIdiomas(listaDeidiomas);
             repositorio.save(livro);
-            repositorioAutores.save(autor);
-            repositorioIdiomas.save(idioma);
             System.out.println("\nLivro salvo na lista com sucesso !!!");
         } else {
             System.out.println("O livro não foi salvo na lista !");
@@ -148,12 +138,12 @@ public class Principal {
     private void buscarLivroWeb() {
         dadosLivro = getDadosPorLivro().dadosLivros();
         System.out.println("Buscando dados do livro... Aguarde... ");
-        dadosAutores = getDadosDoLivro().dadosAutores();
-        dadosIdiomas = getDadosDoLivro().idioma();
-        var formatacao = """
-                        ######################################################################
-                                         RESULTADO DA BUSCA POR TÍTULO NA API
-
+        if (!dadosLivro.isEmpty()) {
+            dadosAutores = getDadosDoLivro().dadosAutores();
+            dadosIdiomas = getDadosDoLivro().idioma();
+            var formatacao = """
+                        \n######################################################################
+                                          RESULTADO DA BUSCA POR TÍTULO NA API
                         Código: %s
                         Downloads: %s
                         Título: %s
@@ -161,29 +151,32 @@ public class Principal {
                         Autor(s): %s
                         Ano de Nascimento: %d
                         Ano de Falecimento: %d
-
+                        
                         ######################################################################
                         """.formatted(dadosLivro.get(0).codigo(), dadosLivro.get(0).download(),
-                dadosLivro.get(0).titulo(), dadosIdiomas.get(0), dadosAutores.get(0).nome(),
-                dadosAutores.get(0).anoNascimento(),
-                dadosAutores.get(0).anoFalecimento());
-
-        Optional<Livro> livroInformado = repositorio.findByTituloContainingIgnoreCase(dadosLivro.get(0).titulo());
-        if (livroInformado.isPresent()) {
-            System.out.println(formatacao);
+                    dadosLivro.get(0).titulo(), dadosIdiomas.get(0), dadosAutores.get(0).nome(),
+                    dadosAutores.get(0).anoNascimento(),
+                    dadosAutores.get(0).anoFalecimento());
+            Optional<Livro> livroInformado = repositorio.findByTituloContainingIgnoreCase(dadosLivro.get(0).titulo());
+            if (livroInformado.isPresent()) {
+                System.out.println(formatacao);
+            } else {
+                System.out.println(formatacao);
+                System.out.println("Novo livro encontrado na API, mas não está na base de dados !");
+                salvaDados();
+            }
         } else {
-            System.out.println(formatacao);
-            System.out.println("Novo livro encontrado na API, mas não está na base de dados !");
-            salvaDados();
+            System.out.println("Livro não encontrado na API !");
         }
     }
 
     private void buscarTodosLivrosWeb() {
         dadosLivro = getDadosLivros().dadosLivros();
         var indice = 1;
+        System.out.printf("Foram encontrado(s) %d Livros... Listando...", dadosLivro.size());
         for (var i = 0 ; i < dadosLivro.size(); i++) {
             var formatacaoGeral = """
-                    ######################################################################
+                    \n######################################################################
                             RESULTADO DA BUSCA DE LIVROS DISPONÍVEIS NA API ( %d )
                     
                     Código: %s
@@ -198,52 +191,34 @@ public class Principal {
     }
 
     private void buscarPelosAutores() {
-        System.out.println("Informe o nome do autor para buscar na base de dados: ");
-        var nomeAutor = leitura.nextLine();
-        livros = repositorio.findAll();
-        listaDeidiomas = repositorioIdiomas.findAll();
+        var fichaDoAutorBuscado = getFichaTecnicaLivro();
+        if (!fichaDoAutorBuscado.isEmpty()) {
 
-        autoresBusca = repositorioAutores.findFirstByNomeContainingIgnoreCase(nomeAutor);
-        if (autoresBusca.isPresent()) {
-
-            List<Autores> relatorioAutores = autoresBusca.stream()
-                    .filter(d -> d.getNome().equals(autoresBusca.get().getNome()))
-                    .toList();
-
-            for (int i = 0; i < relatorioAutores.size(); i++) {
-
-                var relatorioDosAutores = """
-                            \n######################################################################
-                                      RESULTADO DA BUSCA POR AUTORES NA BASE DE DADOS ( %d )
-
-                            Nome: %s
-                            Nascido em: %d
-                            Faleceu em: %d
-                            Livro: %s
-                            Idioma: %s
-
-                            ######################################################################
-                            """.formatted(relatorioAutores.size(), relatorioAutores.get(i).getNome(),
-                        relatorioAutores.get(i).getAnoNascimento(),
-                        relatorioAutores.get(i).getAnoFalecimento(), livros.get(i).getTitulo(),
-                        listaDeidiomas.get(i).getIdioma());
-
-                System.out.println(relatorioDosAutores);
-            }
+            var designAutores = """
+                    \n######################################################################
+                              RESULTADO DA BUSCA POR AUTORES NA BASE DE DADOS
+                    
+                    Nome: %s
+                    Ano de Nascimento: %d
+                    Ano de Falecimento: %d
+                    Livro: %s
+                    Idioma: %s
+                    
+                    ######################################################################
+                    """.formatted(fichaDoAutorBuscado.get(0), fichaDoAutorBuscado.get(1),
+                    fichaDoAutorBuscado.get(2), fichaDoAutorBuscado.get(3), fichaDoAutorBuscado.get(4));
+            System.out.println(designAutores);
         } else {
-            System.out.println("\nAutores não encontrados !");
+            System.out.println("Autores não encontrados da base de dados !");
         }
     }
-
 
     private void buscarPelosAutoresVivos() {
         var anoAtual = Year.now().getValue();
         anoAutoresVivos = anoAtual + 1;
         String relatorioDosAutores;
-
         while (anoAutoresVivos > anoAtual) {
             System.out.println("Informe o ano para saber se os autores estão vivo na base de dados: ");
-
             try {
                 anoAutoresVivos = leitura.nextInt();
             } catch (InputMismatchException ex) {
@@ -252,31 +227,24 @@ public class Principal {
             }
             leitura.nextLine();
         }
+        var fichaAutoresVivos = repositorio.buscarDadosLivrosDosAutores("");
 
-        livros = repositorio.findAll();
-//        autores = repositorioAutores.findAll();
-        listaDeidiomas = repositorioIdiomas.findAll();
-
-        List<Autores> fichaAutoresVivos = repositorioAutores.buscarAutores("");
-
-        List<Autores> relatorioAutoresVivos = fichaAutoresVivos.stream()
+        var relatorioAutoresVivos = fichaAutoresVivos.stream()
                 .filter(d -> d.getAnoNascimento() <= anoAutoresVivos && d.getAnoFalecimento() > anoAutoresVivos)
                 .sorted(Comparator.comparingInt(Autores::getAnoFalecimento))
                 .toList();
 
         if (relatorioAutoresVivos.isEmpty()) {
             System.out.println("\nNa base de dados não tem autores vivos !");
-        }
-
-        var design = """
+        } else {
+            var design = """
                     \n######################################################################
                                   RESULTADO DA BUSCA DE AUTORES VIVOS ( %d )
                     _____________________________________________________________________
                     """.formatted(relatorioAutoresVivos.size());
-        System.out.println(design);
-
-        for (int i = 0; i < relatorioAutoresVivos.size(); i++) {
-            relatorioDosAutores = """                      
+            System.out.println(design);
+            for (int i = 0; i < relatorioAutoresVivos.size(); i++) {
+                relatorioDosAutores = """
                         Nome: %s
                         Nascido em: %d
                         Faleceu em: %d
@@ -284,44 +252,31 @@ public class Principal {
                         Idioma: %s
                         _____________________________________________________________________
                         """.formatted(relatorioAutoresVivos.get(i).getNome(), relatorioAutoresVivos.get(i).getAnoNascimento(),
-                    relatorioAutoresVivos.get(i).getAnoFalecimento(), livros.get(i).getTitulo(),
-                    listaDeidiomas.get(i).getIdioma());
-            System.out.println(relatorioDosAutores);
+                        relatorioAutoresVivos.get(i).getAnoFalecimento(), relatorioAutoresVivos.get(i).getLivro().getTitulo(),
+                        relatorioAutoresVivos.get(i).getLivro().getIdiomas().get(0).getIdioma());
+                System.out.println(relatorioDosAutores);
+            }
         }
         var designFinal = """
+                                                FIM DA LISTA
                     ######################################################################
                     """;
         System.out.println(designFinal);
     }
 
     private void buscarLivrosPeloIdioma() {
-        listaDeidiomas = repositorioIdiomas.findAll();
         System.out.println("Estatisicas dos livros na base de dados: ");
-//
         var tituloDoLivro = "";
-        List<Livro> filtroLivro = repositorio.buscarLivros(tituloDoLivro);
-        filtroLivro.forEach(l -> System.out.println("Livro: " + l.getTitulo()));
-
-        var nomeDosAutores = "";
-        List<Autores> filtroAutores = repositorioAutores.buscarAutores(nomeDosAutores);
-        filtroAutores.forEach(a -> System.out.println("Autores: " + a.getNome()));
-
-        var tipoIdioma = "pt";
-        List<Idioma> filtroIdioma = repositorioIdiomas.buscarIdiomas(tipoIdioma);
-        filtroIdioma.forEach(i -> System.out.println("Idioma: " + i.getIdioma()));
-
-        List<Livro> relatorioLivros = filtroLivro.stream()
+        var filtroLivro = repositorio.buscarLivros(tituloDoLivro);
+        var relatorioLivros = filtroLivro.stream()
                 .filter(d -> d.getTitulo() != null)
                 .toList();
-
-        List<Idioma> relatorioIdiomasPt = filtroIdioma.stream()
-                .filter(d -> d.getIdioma().equals("pt"))
+        var relatorioIdiomasPt = filtroLivro.stream()
+                .filter(d -> d.getIdiomas().get(0).getIdioma().equals("pt"))
                 .toList();
-
-        List<Idioma> relatorioIdiomasEn = filtroIdioma.stream()
-                .filter(d -> d.getIdioma().equals("en"))
+        var relatorioIdiomasEn = filtroLivro.stream()
+                .filter(d -> d.getIdiomas().get(0).getIdioma().equals("en"))
                 .toList();
-//
         var estatisticaLivros = """
                         \n######################################################################
                                   ESTATISTICAS DE LIVROS NOS IDIOMAS NO BANCO DE DADOS
@@ -331,7 +286,6 @@ public class Principal {
                                         %d                  %d               %d
                         ########################################################################
                         """.formatted(relatorioLivros.size(), relatorioIdiomasPt.size(), relatorioIdiomasEn.size());
-
         System.out.println(estatisticaLivros);
     }
 

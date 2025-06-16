@@ -16,9 +16,11 @@ public class Livro {
     @Column(unique = true)
     private int codigo;
 
+    private int download;
+
     private String titulo;
 
-    private int download;
+
 
     @OneToMany(mappedBy = "livro", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Autores> autores = new ArrayList<>();
@@ -87,7 +89,7 @@ public class Livro {
     @Override
     public String toString() {
         return "código= " + codigo +
-                ", titulo=' " + titulo + '\'' +
-                ", download= " + download;
+                ", download=' " + download + '\'' +
+                ", título= " + titulo;
     }
 }
