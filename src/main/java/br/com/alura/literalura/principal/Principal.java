@@ -199,8 +199,8 @@ public class Principal {
                               RESULTADO DA BUSCA POR AUTORES NA BASE DE DADOS
                     
                     Nome: %s
-                    Ano de Nascimento: %d
-                    Ano de Falecimento: %d
+                    Ano de Nascimento: %s
+                    Ano de Falecimento: %s
                     Livro: %s
                     Idioma: %s
                     
